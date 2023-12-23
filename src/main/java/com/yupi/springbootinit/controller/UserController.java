@@ -64,18 +64,26 @@ public class UserController {
      */
     @PostMapping("/register")
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
+        // 检查请求体是否为空
         if (userRegisterRequest == null) {
+            // 抛出业务异常，参数错误
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
+        // 获取用户账号和密码
         String userAccount = userRegisterRequest.getUserAccount();
         String userPassword = userRegisterRequest.getUserPassword();
-        String checkPassword = userRegisterRequest.getCheckPassword();
-        if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
-            return null;
+
+        // 检查用户账号和密码是否为空
+        if (StringUtils.isAnyBlank(userAccount, userPassword)) {
+            // 抛出业务异常，参数错误
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        long result = userService.userRegister(userAccount, userPassword, checkPassword);
+        // 调用用户服务进行注册操作，并返回结果
+        long result = userService.userRegister(userAccount, userPassword);
+        // 返回注册成功的结果，并包含返回结果值
         return ResultUtils.success(result);
     }
+
 
     /**
      * 用户登录
@@ -86,17 +94,25 @@ public class UserController {
      */
     @PostMapping("/login")
     public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
+        // 判断请求体是否为空
         if (userLoginRequest == null) {
+            // 抛出业务异常，参数错误
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
+        // 获取用户账号和密码
         String userAccount = userLoginRequest.getUserAccount();
         String userPassword = userLoginRequest.getUserPassword();
+        // 判断用户账号和密码是否为空或只有其中之一为空
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
+            // 抛出业务异常，参数错误
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
+        // 调用用户服务进行用户登录操作
         LoginUserVO loginUserVO = userService.userLogin(userAccount, userPassword, request);
+        // 返回登录成功的结果
         return ResultUtils.success(loginUserVO);
     }
+
 
 
     /**
