@@ -19,6 +19,7 @@ import com.yupi.springbootinit.model.entity.User;
 import com.yupi.springbootinit.model.enums.FileUploadBizEnum;
 import com.yupi.springbootinit.service.ChartService;
 import com.yupi.springbootinit.service.UserService;
+import com.yupi.springbootinit.utils.ExcelUtils;
 import com.yupi.springbootinit.utils.SqlUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
@@ -150,7 +151,7 @@ public class ChartController {
      */
     @PostMapping("/list/page")
     public BaseResponse<Page<Chart>> listChartByPage(@RequestBody ChartQueryRequest chartQueryRequest,
-            HttpServletRequest request) {
+                                                     HttpServletRequest request) {
         long current = chartQueryRequest.getCurrent();
         long size = chartQueryRequest.getPageSize();
         // 限制爬虫
@@ -169,7 +170,7 @@ public class ChartController {
      */
     @PostMapping("/my/list/page")
     public BaseResponse<Page<Chart>> listMyChartByPage(@RequestBody ChartQueryRequest chartQueryRequest,
-            HttpServletRequest request) {
+                                                       HttpServletRequest request) {
         if (chartQueryRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -193,7 +194,7 @@ public class ChartController {
      * @param request
      * @return
      */
-    @PostMapping ("/edit")
+    @PostMapping("/edit")
     public BaseResponse<Boolean> editChart(@RequestBody ChartEditRequest chartEditRequest, HttpServletRequest request) {
         if (chartEditRequest == null || chartEditRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -221,47 +222,51 @@ public class ChartController {
      * @param request
      * @return
      */
-//    @PostMapping("/gen")
-//    public BaseResponse<String> genChartByAi(@RequestPart("file") MultipartFile multipartFile,
-//                                             GenChartByAiRequest genChartByAiRequest, HttpServletRequest request) {
-//
-//        String name = genChartByAiRequest.getName();
-//        String goal = genChartByAiRequest.getGoal();
-//        String chartType = genChartByAiRequest.getChartType();
-//
-//
-//
-//        FileUploadBizEnum fileUploadBizEnum = FileUploadBizEnum.getEnumByValue(biz);
-//        if (fileUploadBizEnum == null) {
-//            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-//        }
-//        validFile(multipartFile, fileUploadBizEnum);
+    @PostMapping("/gen")
+    public BaseResponse<String> genChartByAi(@RequestPart("file") MultipartFile multipartFile,
+                                             GenChartByAiRequest genChartByAiRequest, HttpServletRequest request) {
+
+        String name = genChartByAiRequest.getName();
+        String goal = genChartByAiRequest.getGoal();
+        String chartType = genChartByAiRequest.getChartType();
+
+        // 校验参数
+        ThrowUtils.throwIf(StringUtils.isNotBlank(name) && name.length() > 100, ErrorCode.PARAMS_ERROR, "名称过长");
+        ThrowUtils.throwIf(StringUtils.isBlank(goal), ErrorCode.PARAMS_ERROR, "目标为空");
+
+        // 用户输入
+        StringBuilder userInput = new StringBuilder();
+        userInput.append("你是一名数据分析师，接下来我会给你我的分析目标和原始数据，请告诉我分析结论。").append("\n");
+        userInput.append("分析目标：").append(goal).append("\n");
+
+        // 压缩后的数据
+        String result = ExcelUtils.excleToCsv(multipartFile);
+        userInput.append("原始数据：").append(result).append("\n");
+        return ResultUtils.success(userInput.toString());
+
 //        User loginUser = userService.getLoginUser(request);
 //        // 文件目录：根据业务、用户来划分
 //        String uuid = RandomStringUtils.randomAlphanumeric(8);
 //        String filename = uuid + "-" + multipartFile.getOriginalFilename();
-//        String filepath = String.format("/%s/%s/%s", fileUploadBizEnum.getValue(), loginUser.getId(), filename);
+//
 //        File file = null;
 //        try {
-//            // 上传文件
-//            file = File.createTempFile(filepath, null);
-//            multipartFile.transferTo(file);
-//            cosManager.putObject(filepath, file);
+//
 //            // 返回可访问地址
-//            return ResultUtils.success(FileConstant.COS_HOST + filepath);
+//            return ResultUtils.success("");
 //        } catch (Exception e) {
-//            log.error("file upload error, filepath = " + filepath, e);
+////            log.error("file upload error, filepath = " + filepath, e);
 //            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败");
 //        } finally {
 //            if (file != null) {
 //                // 删除临时文件
 //                boolean delete = file.delete();
 //                if (!delete) {
-//                    log.error("file delete error, filepath = {}", filepath);
+////                    log.error("file delete error, filepath = {}", filepath);
 //                }
 //            }
 //        }
-//    }
+    }
 
     /**
      * 获取查询包装类
@@ -282,7 +287,7 @@ public class ChartController {
         String sortField = chartQueryRequest.getSortField();
         String sortOrder = chartQueryRequest.getSortOrder();
 
-        queryWrapper.eq( id != null && id > 0, "id", id);
+        queryWrapper.eq(id != null && id > 0, "id", id);
         queryWrapper.like(StringUtils.isNotBlank(name), "name", name);
         queryWrapper.eq(StringUtils.isNotBlank(goal), "goal", goal);
         queryWrapper.eq(StringUtils.isNotBlank(chartType), "chartType", chartType);
